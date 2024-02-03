@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Places from './components/Places.jsx';
 import { AVAILABLE_PLACES } from './data.js';
@@ -14,13 +14,10 @@ const storedPlaces = storedIds.map(id => {
 
 function App() {
 
-
-  const modal = useRef();
   const selectedPlace = useRef();
+  const [modalIsOpen, setModalIsOpen] = useState(false);
   const [availablePlaces, setAvailablePlaces] = useState([]);
   const [pickedPlaces, setPickedPlaces] = useState(storedPlaces);
-
-  
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition((position) => {
@@ -30,19 +27,18 @@ function App() {
         position.coords.longitude
       );
       setAvailablePlaces(sortedPlaces);
-      console.log('eff');
     });
   }, []);
 
 
 
   function handleStartRemovePlace(id) {
-    modal.current.open();
+    setModalIsOpen(true);
     selectedPlace.current = id;
   }
 
   function handleStopRemovePlace() {
-    modal.current.close();
+    setModalIsOpen(false);
   }
 
   function handleSelectPlace(id) {
@@ -60,18 +56,21 @@ function App() {
     }
   }
 
-  function handleRemovePlace() {
-    setPickedPlaces((prevPickedPlaces) =>
-      prevPickedPlaces.filter((place) => place.id !== selectedPlace.current)
-    );
-    modal.current.close();
-    const storedIds = JSON.parse(localStorage.getItem('selectedPlaces')) || [];
-    localStorage.setItem('selectedPlaces', JSON.stringify(storedIds.filter(n => n !== selectedPlace.current)));
-  }
+  const handleRemovePlace = useCallback(
+    function handleRemovePlace() {
+      setPickedPlaces((prevPickedPlaces) =>
+        prevPickedPlaces.filter((place) => place.id !== selectedPlace.current)
+      );
+      setModalIsOpen(false);
+
+      const storedIds = JSON.parse(localStorage.getItem('selectedPlaces')) || [];
+      localStorage.setItem('selectedPlaces', JSON.stringify(storedIds.filter(n => n !== selectedPlace.current)));
+    }
+  ,[]);
 
   return (
     <>
-      <Modal ref={modal}>
+      <Modal open={modalIsOpen} onClose={handleStopRemovePlace}>
         <DeleteConfirmation
           onCancel={handleStopRemovePlace}
           onConfirm={handleRemovePlace}
